@@ -11,6 +11,6 @@ namespace CurrencyExchange.Core.Models
         public decimal AmountLC { get; set; }
         public int CurrencyId { get; set; }
         public decimal PurchaseAmount { get; set; }
-        public DateTime Date { get; set; }
+        public DateTimeOffset Date { get; set; }
     }
 }

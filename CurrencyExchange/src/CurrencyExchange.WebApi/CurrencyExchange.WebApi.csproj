@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CurrencyExchange.Data\CurrencyExchange.Data.csproj" />
+    <ProjectReference Include="..\CurrencyExchange.Services\CurrencyExchange.Services.csproj" />
   </ItemGroup>
 
 

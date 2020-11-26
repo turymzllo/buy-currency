@@ -1,5 +1,7 @@
 using CurrencyExchange.Core.Repositories;
+using CurrencyExchange.Core.Services;
 using CurrencyExchange.Data;
+using CurrencyExchange.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -28,7 +30,13 @@ namespace CurrencyExchange.WebApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddHttpClient();
+
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+            services.AddTransient<IQuoteService, QuoteService>();
+            services.AddTransient<ICurrencyService, CurrencyService>();
+            services.AddTransient<IPurchaseService, PurchaseService>();
 
             services.AddControllers();
 
