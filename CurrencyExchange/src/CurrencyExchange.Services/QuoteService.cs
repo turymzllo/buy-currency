@@ -1,6 +1,9 @@
 ﻿using CurrencyExchange.Core.Models;
+using CurrencyExchange.Core.ModelsDTO;
 using CurrencyExchange.Core.Repositories;
 using CurrencyExchange.Core.Services;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +18,7 @@ namespace CurrencyExchange.Services
     {
         private readonly IHttpClientFactory _clientFactory;
         private readonly ICurrencyService _currencyService;
+
         public QuoteService(IHttpClientFactory clientFactory, ICurrencyService currencyService)
         {
             _clientFactory = clientFactory;
@@ -29,48 +33,40 @@ namespace CurrencyExchange.Services
             }
 
             var currency = await _currencyService.GetCurrencyByISOCode(isoCode);
-            
+
             if (currency == null)
             {
                 throw new ArgumentException();
             }
 
+            QuoteDTO result;
             if (!string.IsNullOrEmpty(currency.ExchangeRateProvider) && !currency.UseUSDFactor)
             {
-
-                var response = await _getQuoteFromProviderAsync(currency);
-
-                return await response.Content.ReadAsStringAsync();
+                result = await _getQuoteFromProviderAsync(currency);
             }
             else if (currency.UseUSDFactor)
             {
-                var usdCurrency = await _currencyService.GetCurrencyByISOCode("USD");                
+                var usdCurrency = await _currencyService.GetCurrencyByISOCode("USD");
 
-                var response = await _getQuoteFromProviderAsync(usdCurrency);
+                var usdQuote = await _getQuoteFromProviderAsync(usdCurrency);
 
-                using var responseStream = await response.Content.ReadAsStreamAsync();
-                IEnumerable<string> quoteData = await JsonSerializer.DeserializeAsync<IEnumerable<string>>(responseStream);
-                if (quoteData.Count() == 3)
+                result = new QuoteDTO
                 {
-                    decimal usdBuyQuote = decimal.Parse(quoteData.ElementAt(0), System.Globalization.CultureInfo.InvariantCulture);
-                    decimal usdSellQuote = decimal.Parse(quoteData.ElementAt(1), System.Globalization.CultureInfo.InvariantCulture);
-                    var result = new string[3];
-                    result[0] = (usdBuyQuote * currency.USDFactor).ToString();
-                    result[1] = (usdSellQuote * currency.USDFactor).ToString();
-                    result[2] = quoteData.ElementAt(2);
-
-                    return JsonSerializer.Serialize<IEnumerable<string>>(result);
-                }
-
-                return "0.00";
+                    id = isoCode,
+                    buy = usdQuote.buy * currency.USDFactor,
+                    sale = usdQuote.sale * currency.USDFactor,
+                    updated = usdQuote.updated
+                };
             }
             else
-            {                
+            {
                 throw new InvalidOperationException();
             }
+
+            return JsonConvert.SerializeObject(result);
         }
 
-        private async Task<HttpResponseMessage> _getQuoteFromProviderAsync(Currency currency)
+        private async Task<QuoteDTO> _getQuoteFromProviderAsync(Currency currency)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, currency.ExchangeRateProvider);
             request.Headers.Add("Accept", "application/json");
@@ -82,7 +78,20 @@ namespace CurrencyExchange.Services
 
             if (response.IsSuccessStatusCode)
             {
-                return response;
+                using var responseStream = await response.Content.ReadAsStreamAsync();
+                IEnumerable<string> quoteData = await System.Text.Json.JsonSerializer.DeserializeAsync<IEnumerable<string>>(responseStream);
+                if (quoteData.Count() == 3)
+                {
+                    return new QuoteDTO
+                    {
+                        id = currency.ISOCode,
+                        buy = decimal.Parse(quoteData.ElementAt(0), System.Globalization.CultureInfo.InvariantCulture),
+                        sale = decimal.Parse(quoteData.ElementAt(1), System.Globalization.CultureInfo.InvariantCulture),
+                        updated = quoteData.ElementAt(2)
+                    };
+                }
+
+                throw new NullReferenceException();
             }
             else
             {

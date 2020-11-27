@@ -20,16 +20,25 @@ namespace CurrencyExchange.WebApi
 {
     public class Startup
     {
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
         }
 
         public IConfiguration Configuration { get; }
+        readonly string _allowOrigins = "_allowOrigins";
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors(options => {
+                options.AddPolicy(_allowOrigins,builder => {
+                    builder.AllowAnyOrigin()
+                           .AllowAnyHeader()
+                           .AllowAnyMethod();
+                });
+            });
             services.AddHttpClient();
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -59,6 +68,8 @@ namespace CurrencyExchange.WebApi
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "Currency Exchange API V1");
             });
+
+            app.UseCors(_allowOrigins);
 
             app.UseHttpsRedirection();
 

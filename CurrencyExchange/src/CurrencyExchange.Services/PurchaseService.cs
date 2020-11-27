@@ -2,6 +2,8 @@
 using CurrencyExchange.Core.ModelsDTO;
 using CurrencyExchange.Core.Repositories;
 using CurrencyExchange.Core.Services;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,6 +18,8 @@ namespace CurrencyExchange.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrencyService _currencyService;
         private readonly IQuoteService _quoteService;
+
+
         public PurchaseService(IUnitOfWork unitOfWork, 
             ICurrencyService currencyService,
             IQuoteService quoteService)
@@ -33,11 +37,11 @@ namespace CurrencyExchange.Services
 
             var response = await _quoteService.GetQuoteByCurrencyISOCode(newPurchase.ISOCurrencyCode);
 
-            IEnumerable<string> quoteData = JsonSerializer.Deserialize<IEnumerable<string>>(response);
-            if (quoteData == null && quoteData.Count() < 3)
+            var quoteData = JsonConvert.DeserializeObject<QuoteDTO>(response);
+            if (quoteData == null)
                throw new NullReferenceException();
 
-            var currentCuote = Convert.ToDecimal(quoteData.ElementAt(1), System.Globalization.CultureInfo.InvariantCulture);
+            var currentCuote = quoteData.sale;
 
             var purchase = new Purchase {
                 UserId = newPurchase.UserId,
