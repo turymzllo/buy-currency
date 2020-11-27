@@ -1,0 +1,7 @@
+--1--  About the endpoints created above, we would like to know what do you think about using the user ID as the input endpoint. 
+
+Answer: Is not a good practice to send technical details or sensible information throug the network. Best practice suggest 
+
+--2-- How would you improve the transaction to ensure that the user who makes the purchase is the correct user?
+
+Answer: Best practice suggest to use token base autentication.
